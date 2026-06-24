@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HSK 3 — Тест · HSK.ILS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="test-page">
+  <header class="test-header">
+    <div class="container test-header-inner">
+      <a href="index.html" class="logo logo-sm">
+        <span class="logo-han">汉</span>
+        <span class="logo-text">HSK.ILS</span>
+      </a>
+      <a href="dashboard.html" class="btn btn-sm btn-ghost">Кабинет</a>
+      <a href="payment.html" class="btn btn-sm btn-ghost">PRO</a>
+      <div class="test-meta">
+        <span class="test-level">HSK 3 · 听力</span>
+        <span class="test-progress">Задание <span id="current-q">1</span> / <span id="total-q">5</span></span>
+      </div>
+      <div class="timer" id="timer" aria-live="polite">
+        <span class="timer-icon">⏱</span>
+        <span id="timer-display">25:00</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width: 20%"></div>
+    </div>
+  </header>
+
+  <main class="test-main">
+    <div class="container test-container">
+      <section class="test-section" aria-labelledby="section-title">
+        <h2 id="section-title" class="section-title">第一部分 · 听力理解</h2>
+        <p class="section-desc">Прослушайте аудиозапись и ответьте на вопрос ниже.</p>
+      </section>
+
+      <section class="audio-block" aria-label="Аудирование">
+        <div class="audio-player">
+          <button type="button" class="audio-play-btn" id="play-btn" aria-label="Воспроизвести аудио">
+            <span class="play-icon" id="play-icon">▶</span>
+          </button>
+          <div class="audio-info">
+            <p class="audio-title">录音 1 — 语音练习 · TTS</p>
+            <div class="audio-track">
+              <div class="audio-progress" id="audio-progress" style="width: 0%"></div>
+            </div>
+            <span class="audio-time"><span id="audio-current">0:00</span> / <span id="audio-duration">--:--</span></span>
+          </div>
+        </div>
+        <p class="audio-hint">Можно прослушать запись до 2 раз (как на экзамене). Осталось: <span id="plays-left">2</span></p>
+        <audio id="audio" preload="metadata" src="https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E5%AD%A6%E4%B9%A0%E6%B1%89%E8%AF%AD%E3%80%82"></audio>
+      </section>
+
+      <section class="question-block">
+        <div class="question-header">
+          <span class="question-num">1</span>
+          <p class="question-instruction">请听录音，用汉字写出下面的句子：</p>
+        </div>
+        <p class="question-text" id="question-text">
+          「你好，我想学习汉语。」
+        </p>
+        <p class="question-sub" id="question-sub">
+          Послушайте аудио и запишите иероглифами фразу: «Привет, я хочу учить китайский язык».
+        </p>
+
+        <label for="answer-input" class="input-label">Ваш ответ (汉字)</label>
+        <div class="answer-field-wrap">
+          <textarea
+            id="answer-input"
+            class="answer-input"
+            rows="3"
+            placeholder="在此输入汉字…"
+            lang="zh-CN"
+            inputmode="text"
+            autocomplete="off"
+            spellcheck="false"
+          ></textarea>
+          <span class="char-count"><span id="char-count">0</span> 字</span>
+        </div>
+
+        <div class="ai-hint" id="ai-hint" hidden>
+          <span class="ai-badge">AI</span>
+          <p id="ai-hint-text">Подсказка появится после отправки ответа.</p>
+        </div>
+      </section>
+
+      <nav class="test-nav">
+        <button type="button" class="btn btn-ghost" id="prev-btn" disabled>← Назад</button>
+        <button type="button" class="btn btn-secondary" id="check-btn">
+          Проверить с ИИ <span class="ai-limit-badge" id="ai-limit-badge"></span>
+        </button>
+        <button type="button" class="btn btn-primary" id="next-btn">Далее →</button>
+      </nav>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="pro-modal" hidden aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="pro-modal-title">
+      <button type="button" class="modal-close" id="pro-modal-close" aria-label="Закрыть">×</button>
+      <span class="premium-badge">PRO</span>
+      <h2 id="pro-modal-title">Лимит бесплатных проверок</h2>
+      <p class="modal-text">
+        Вы исчерпали бесплатные лимиты. Перейдите на тариф PRO для безлимитных проверок от ИИ.
+      </p>
+      <ul class="modal-features">
+        <li>Безлимитная ИИ-проверка иероглифов</li>
+        <li>Все тесты HSK 1–6</li>
+        <li>Детальный разбор ошибок</li>
+      </ul>
+      <a href="payment.html" class="btn btn-primary btn-lg modal-cta">Купить доступ за 1990 ₸</a>
+      <button type="button" class="btn btn-ghost modal-dismiss" id="pro-modal-dismiss">Позже</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const GEMINI_API_KEY = prompt("Пожалуйста, введите ваш API-ключ:");
+      const GEMINI_API_URL =
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const CHECK_BTN_LABEL = 'Проверить с ИИ';
+      const MAX_FREE_AI_CHECKS = 2;
+      const AI_CHECKS_KEY = 'hskAiChecksUsed';
+
+      function isProUser() {
+        if (localStorage.getItem('hskPremium') !== 'active') return false;
+        const until = localStorage.getItem('hskPremiumUntil');
+        return until && new Date(until) > new Date();
+      }
+
+      function getAiChecksUsed() {
+        return parseInt(localStorage.getItem(AI_CHECKS_KEY) || '0', 10);
+      }
+
+      function incrementAiChecksUsed() {
+        localStorage.setItem(AI_CHECKS_KEY, String(getAiChecksUsed() + 1));
+        updateAiLimitBadge();
+      }
+
+      function updateAiLimitBadge() {
+        const badge = document.getElementById('ai-limit-badge');
+        if (!badge) return;
+        if (isProUser()) {
+          badge.textContent = 'PRO ∞';
+          badge.className = 'ai-limit-badge ai-limit-pro';
+        } else {
+          const left = Math.max(0, MAX_FREE_AI_CHECKS - getAiChecksUsed());
+          badge.textContent = left + ' бесплатно';
+          badge.className = 'ai-limit-badge';
+        }
+      }
+
+      function showProModal() {
+        const modal = document.getElementById('pro-modal');
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+      }
+
+      function hideProModal() {
+        const modal = document.getElementById('pro-modal');
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+      }
+
+      document.getElementById('pro-modal-close').addEventListener('click', hideProModal);
+      document.getElementById('pro-modal-dismiss').addEventListener('click', hideProModal);
+      document.getElementById('pro-modal').addEventListener('click', function (e) {
+        if (e.target === this) hideProModal();
+      });
+
+      updateAiLimitBadge();
+
+      const TOTAL_SECONDS = 25 * 60;
+      const TOTAL_QUESTIONS = 5;
+      let remaining = TOTAL_SECONDS;
+      let currentQuestion = 1;
+      let playCount = 0;
+      const MAX_PLAYS = 2;
+      const savedAnswers = {};
+
+      const TTS_URL = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q=';
+
+      const timerDisplay = document.getElementById('timer-display');
+      const timerEl = document.getElementById('timer');
+      const progressFill = document.getElementById('progress-fill');
+      const currentQEl = document.getElementById('current-q');
+      const answerInput = document.getElementById('answer-input');
+      const charCountEl = document.getElementById('char-count');
+      const playBtn = document.getElementById('play-btn');
+      const playIcon = document.getElementById('play-icon');
+      const audio = document.getElementById('audio');
+      const audioProgress = document.getElementById('audio-progress');
+      const audioCurrent = document.getElementById('audio-current');
+      const audioDuration = document.getElementById('audio-duration');
+      const playsLeftEl = document.getElementById('plays-left');
+      const checkBtn = document.getElementById('check-btn');
+      const nextBtn = document.getElementById('next-btn');
+      const prevBtn = document.getElementById('prev-btn');
+      const aiHint = document.getElementById('ai-hint');
+      const aiHintText = document.getElementById('ai-hint-text');
+
+      const questions = [
+        {
+          instruction: '请听录音，用汉字写出下面的句子：',
+          text: '「你好，我想学习汉语。」',
+          sub: 'Послушайте аудио и запишите иероглифами фразу: «Привет, я хочу учить китайский язык».',
+          sample: '你好，我想学习汉语。',
+          tts: '你好，我想学习汉语。'
+        },
+        {
+          instruction: '请听录音，选择正确的词语：',
+          text: '女的觉得今天天气怎么样？',
+          sub: 'Как девушка считает погоду сегодня?',
+          sample: '今天很热。',
+          tts: '今天很热。'
+        },
+        {
+          instruction: '请听录音，用汉字回答问题：',
+          text: '他们约好几点见面？',
+          sub: 'На которое время они договорились встретиться?',
+          sample: '下午三点。',
+          tts: '他们下午三点见面。'
+        },
+        {
+          instruction: '请听录音，用汉字回答问题：',
+          text: '男的为什么迟到？',
+          sub: 'Почему мужчина опоздал?',
+          sample: '因为堵车。',
+          tts: '因为堵车。'
+        },
+        {
+          instruction: '请听录音，用汉字回答问题：',
+          text: '女的建议去哪里吃饭？',
+          sub: 'Куда девушка предлагает пойти поесть?',
+          sample: '去学校附近的饭馆。',
+          tts: '女的建议去学校附近的饭馆吃饭。'
+        }
+      ];
+
+      function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+      }
+
+      function tickTimer() {
+        if (remaining <= 0) {
+          timerDisplay.textContent = '00:00';
+          timerEl.classList.add('timer-warning');
+          return;
+        }
+        remaining--;
+        timerDisplay.textContent = formatTime(remaining);
+        if (remaining <= 300) timerEl.classList.add('timer-warning');
+        if (remaining <= 60) timerEl.classList.add('timer-critical');
+      }
+
+      setInterval(tickTimer, 1000);
+
+      answerInput.addEventListener('input', function () {
+        charCountEl.textContent = [...answerInput.value].length;
+      });
+
+      function formatAudioTime(sec) {
+        if (!isFinite(sec) || sec < 0) return '--:--';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return m + ':' + String(s).padStart(2, '0');
+      }
+
+      function updatePlaysLeft() {
+        playsLeftEl.textContent = String(Math.max(0, MAX_PLAYS - playCount));
+      }
+
+      function updateAudioProgress() {
+        if (!audio.duration || !isFinite(audio.duration)) return;
+        audioProgress.style.width = (audio.currentTime / audio.duration * 100) + '%';
+        audioCurrent.textContent = formatAudioTime(audio.currentTime);
+      }
+
+      function setPlayIcon(playing) {
+        playIcon.textContent = playing ? '⏸' : '▶';
+        playBtn.setAttribute('aria-label', playing ? 'Пауза' : 'Воспроизвести аудио');
+      }
+
+      audio.addEventListener('loadedmetadata', function () {
+        audioDuration.textContent = formatAudioTime(audio.duration);
+        updateAudioProgress();
+      });
+
+      audio.addEventListener('error', function () {
+        audioDuration.textContent = '--:--';
+        alert('Не удалось загрузить аудио. Проверьте подключение к интернету.');
+      });
+
+      playBtn.addEventListener('click', function () {
+        if (!audio.paused) {
+          audio.pause();
+          return;
+        }
+        if (playCount >= MAX_PLAYS) {
+          alert('Вы уже прослушали запись ' + MAX_PLAYS + ' раза (лимит экзамена).');
+          return;
+        }
+        if (audio.ended) audio.currentTime = 0;
+        if (audio.currentTime === 0) {
+          playCount++;
+          updatePlaysLeft();
+        }
+        audio.play().catch(function () {
+          setPlayIcon(false);
+          alert('Не удалось воспроизвести аудио. Проверьте подключение к интернету.');
+        });
+      });
+
+      audio.addEventListener('play', function () {
+        setPlayIcon(true);
+      });
+
+      audio.addEventListener('pause', function () {
+        setPlayIcon(false);
+      });
+
+      audio.addEventListener('timeupdate', updateAudioProgress);
+
+      audio.addEventListener('ended', function () {
+        setPlayIcon(false);
+        audioProgress.style.width = '100%';
+        audioCurrent.textContent = formatAudioTime(audio.duration);
+      });
+
+      checkBtn.addEventListener('click', async function () {
+        const studentText = answerInput.value.trim();
+        aiHint.hidden = false;
+
+        if (!studentText) {
+          aiHintText.textContent = 'Введите ответ иероглифами. ИИ проверит грамматику, тоны и лексику.';
+          return;
+        }
+
+        if (!isProUser() && getAiChecksUsed() >= MAX_FREE_AI_CHECKS) {
+          showProModal();
+          return;
+        }
+
+        checkBtn.disabled = true;
+        checkBtn.innerHTML = 'ИИ анализирует текст...';
+        aiHintText.textContent = 'ИИ анализирует ваш ответ…';
+
+        try {
+          const response = await fetch(GEMINI_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text:
+                    "Ты строгий, но помогающий экзаменатор HSK 3. Проверь китайский текст студента на ошибки: '" +
+                    studentText +
+                    "'. Если там есть русские или казахские слова (например, Алматы), обязательно укажи, как это пишется на китайском (阿拉木图). Распиши ошибки по грамматике и порядку слов на русском языке, поставь оценку от 1 до 10 и дай совет."
+                }]
+              }]
+            })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error?.message || 'Ошибка API: ' + response.status);
+          }
+
+          aiHintText.textContent = data.candidates[0].content.parts[0].text;
+
+          if (!isProUser()) {
+            incrementAiChecksUsed();
+          }
+        } catch (err) {
+          aiHintText.textContent =
+            'Не удалось получить разбор от ИИ: ' + err.message +
+            '. Проверьте ключ GEMINI_API_KEY и подключение к интернету.';
+        } finally {
+          checkBtn.disabled = false;
+          checkBtn.innerHTML = CHECK_BTN_LABEL + ' <span class="ai-limit-badge" id="ai-limit-badge"></span>';
+          updateAiLimitBadge();
+        }
+      });
+
+      function saveCurrentAnswer() {
+        savedAnswers[currentQuestion] = answerInput.value.trim();
+      }
+
+      function scoreAnswer(user, sample) {
+        if (!user) return 0;
+        const normalize = function (s) {
+          return s.replace(/[，。！？、\s「」]/g, '').toLowerCase();
+        };
+        return normalize(user) === normalize(sample) ? 20 : Math.max(8, 20 - Math.abs(user.length - sample.length) * 2);
+      }
+
+      function finishTest() {
+        saveCurrentAnswer();
+        let total = 0;
+        const details = questions.map(function (q, i) {
+          const num = i + 1;
+          const userAnswer = savedAnswers[num] || '';
+          const points = scoreAnswer(userAnswer, q.sample);
+          total += points;
+          return {
+            question: num,
+            instruction: q.instruction,
+            prompt: q.text,
+            sub: q.sub,
+            userAnswer: userAnswer,
+            correct: q.sample,
+            points: points,
+            maxPoints: 20
+          };
+        });
+        sessionStorage.setItem('hskTestResults', JSON.stringify({
+          score: total,
+          maxScore: 100,
+          level: 'HSK 3',
+          section: '听力',
+          details: details,
+          completedAt: new Date().toISOString()
+        }));
+        window.location.href = 'results.html';
+      }
+
+      function loadQuestionAudio(q) {
+        if (q.tts) {
+          audio.src = TTS_URL + encodeURIComponent(q.tts);
+          audio.load();
+          audioDuration.textContent = '--:--';
+          audioProgress.style.width = '0%';
+          audioCurrent.textContent = '0:00';
+        }
+      }
+      function updateQuestion() {
+        const q = questions[currentQuestion - 1];
+        document.getElementById('question-text').textContent = q.text;
+        document.getElementById('question-sub').textContent = q.sub;
+        document.querySelector('.question-instruction').textContent = q.instruction;
+        document.querySelector('.question-num').textContent = currentQuestion;
+        document.querySelector('.audio-title').textContent =
+          '录音 ' + currentQuestion + ' — 语音练习 · TTS';
+        currentQEl.textContent = currentQuestion;
+        progressFill.style.width = (currentQuestion / TOTAL_QUESTIONS * 100) + '%';
+        answerInput.value = savedAnswers[currentQuestion] || '';
+        charCountEl.textContent = String([...answerInput.value].length);
+        aiHint.hidden = true;
+        prevBtn.disabled = currentQuestion === 1;
+        nextBtn.textContent = currentQuestion === TOTAL_QUESTIONS ? 'Завершить тест' : 'Далее →';
+        playCount = 0;
+        audio.pause();
+        audio.currentTime = 0;
+        audioProgress.style.width = '0%';
+        audioCurrent.textContent = '0:00';
+        setPlayIcon(false);
+        updatePlaysLeft();
+        loadQuestionAudio(q);
+      }
+
+      updatePlaysLeft();
+      loadQuestionAudio(questions[0]);
+
+      nextBtn.addEventListener('click', function () {
+        saveCurrentAnswer();
+        if (currentQuestion < TOTAL_QUESTIONS) {
+          currentQuestion++;
+          updateQuestion();
+        } else {
+          finishTest();
+        }
+      });
+
+      prevBtn.addEventListener('click', function () {
+        saveCurrentAnswer();
+        if (currentQuestion > 1) {
+          currentQuestion--;
+          updateQuestion();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

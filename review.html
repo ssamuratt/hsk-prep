@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Работа над ошибками · HSK.ILS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-han">汉</span>
+        <span class="logo-text">HSK.ILS</span>
+      </a>
+      <nav class="nav">
+        <a href="results.html">Результаты</a>
+        <a href="dashboard.html">Кабинет</a>
+        <a href="test.html" class="btn btn-sm">Новый тест</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <div class="container page-narrow">
+      <header class="page-header">
+        <p class="eyebrow">ИИ-разбор</p>
+        <h1>Работа над ошибками</h1>
+        <p class="page-lead">Подробный анализ ваших ответов с рекомендациями от ИИ</p>
+      </header>
+
+      <div class="review-list" id="review-list"></div>
+
+      <section class="page-actions">
+        <a href="test.html" class="btn btn-primary">Повторить тест</a>
+        <a href="dashboard.html" class="btn btn-ghost">В личный кабинет</a>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-logo"><span class="logo-han">汉</span> HSK.ILS</p>
+      <p class="footer-copy">© 2026 HSK.ILS</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const aiFeedback = [
+        {
+          status: 'ok',
+          title: 'Правильная структура предложения',
+          text: 'Фраза построена верно: приветствие + желание + объект. Порядок слов соответствует норме HSK 3.'
+        },
+        {
+          status: 'warn',
+          title: 'Проверьте иероглиф «语»',
+          text: 'Вместо «汉语» иногда пишут «汉言» — это ошибка. 语 (yǔ) означает «язык», а 言 (yán) — «речь, слова»; в сочетании «китайский язык» используется только 汉语.'
+        },
+        {
+          status: 'error',
+          title: 'Топоним: не «Алматы», а «阿拉木图»',
+          text: 'Если в задании нужно написать название города, нельзя использовать кириллицу или русскую транскрипцию «Алматы». Правильно: 阿拉木图 (Ālāmùtú). Иероглифы подбираются по звучанию, а не по переводу.'
+        }
+      ];
+
+      function buildFeedback(item) {
+        if (!item.userAnswer) {
+          return [{
+            status: 'error',
+            title: 'Ответ не дан',
+            text: 'Вы пропустили это задание. Правильный вариант: «' + item.correct + '». Прослушайте аудио ещё раз и попробуйте записать фразу иероглифами.'
+          }];
+        }
+        const norm = function (s) { return s.replace(/[，。！？、\s「」]/g, ''); };
+        if (norm(item.userAnswer) === norm(item.correct)) {
+          return [{
+            status: 'ok',
+            title: 'Ответ верный',
+            text: 'Иероглифы, порядок слов и пунктуация соответствуют эталону. Отличная работа!'
+          }];
+        }
+        const tips = [{
+          status: 'error',
+          title: 'Ответ не совпадает с эталоном',
+          text: 'Вы написали: «' + item.userAnswer + '». Правильно: «' + item.correct + '». Сравните иероглиф за иероглифом.'
+        }];
+        if (item.question === 1) tips.push.apply(tips, aiFeedback.slice(1));
+        if (/阿拉|阿尔|阿木|Almaty|Алмат/i.test(item.userAnswer)) {
+          tips.push(aiFeedback[2]);
+        }
+        return tips;
+      }
+
+      const raw = sessionStorage.getItem('hskTestResults');
+      let details;
+      if (raw) {
+        details = JSON.parse(raw).details;
+      } else {
+        details = [{
+          question: 1,
+          prompt: '「你好，我想学习汉语。」',
+          sub: 'Послушайте аудио и запишите иероглифами фразу.',
+          userAnswer: '你好，我想学习汉言。',
+          correct: '你好，我想学习汉语。',
+          points: 12,
+          maxPoints: 20
+        }];
+      }
+
+      const list = document.getElementById('review-list');
+      details.forEach(function (item) {
+        const card = document.createElement('article');
+        card.className = 'review-card card';
+        const feedback = buildFeedback(item);
+        const userDisplay = item.userAnswer || '— (нет ответа)';
+
+        card.innerHTML =
+          '<div class="review-card-head">' +
+            '<span class="review-num">Задание ' + item.question + '</span>' +
+            '<span class="review-points ' + (item.points >= item.maxPoints ? 'points-ok' : 'points-warn') + '">' +
+              item.points + '/' + item.maxPoints + ' баллов</span>' +
+          '</div>' +
+          '<p class="review-prompt">' + item.prompt + '</p>' +
+          '<div class="review-answers">' +
+            '<div class="review-answer review-answer-user">' +
+              '<span class="review-label">Ваш ответ</span>' +
+              '<p class="review-zh">' + userDisplay + '</p>' +
+            '</div>' +
+            '<div class="review-answer review-answer-correct">' +
+              '<span class="review-label">Эталон</span>' +
+              '<p class="review-zh">' + item.correct + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="review-ai">' +
+            '<div class="review-ai-header"><span class="ai-badge">AI</span> Разбор ошибок</div>' +
+            '<ul class="review-feedback"></ul>' +
+          '</div>';
+
+        const ul = card.querySelector('.review-feedback');
+        feedback.forEach(function (f) {
+          const li = document.createElement('li');
+          li.className = 'feedback-item feedback-' + f.status;
+          li.innerHTML = '<strong>' + f.title + '</strong><p>' + f.text + '</p>';
+          ul.appendChild(li);
+        });
+
+        list.appendChild(card);
+      });
+    })();
+  </script>
+</body>
+</html>

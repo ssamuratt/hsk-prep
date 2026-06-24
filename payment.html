@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оплата · HSK.ILS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-han">汉</span>
+        <span class="logo-text">HSK.ILS</span>
+      </a>
+      <nav class="nav">
+        <a href="test.html">Тест</a>
+        <a href="dashboard.html">Кабинет</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <div class="container page-narrow">
+      <header class="page-header">
+        <p class="eyebrow">Подписка</p>
+        <h1>Выберите тариф</h1>
+        <p class="page-lead">Откройте безлимитные ИИ-проверки и полный доступ к тестам HSK</p>
+      </header>
+
+      <div class="pricing-grid">
+        <label class="pricing-card">
+          <input type="radio" name="plan" value="pro" checked>
+          <div class="pricing-card-inner pricing-card-featured">
+            <span class="pricing-badge">Популярный</span>
+            <h3>PRO</h3>
+            <p class="pricing-price">1 990 ₸ <span>/ месяц</span></p>
+            <ul class="pricing-features">
+              <li>Безлимитная ИИ-проверка</li>
+              <li>Тесты HSK 1–4</li>
+              <li>Разбор ошибок</li>
+            </ul>
+          </div>
+        </label>
+
+        <label class="pricing-card">
+          <input type="radio" name="plan" value="premium">
+          <div class="pricing-card-inner">
+            <span class="pricing-badge pricing-badge-gold">Максимум</span>
+            <h3>Premium</h3>
+            <p class="pricing-price">4 900 ₸ <span>/ месяц</span></p>
+            <ul class="pricing-features">
+              <li>Всё из PRO</li>
+              <li>HSK 5–6 и симуляции экзамена</li>
+              <li>Персональный план от ИИ</li>
+            </ul>
+          </div>
+        </label>
+      </div>
+
+      <section class="card payment-section">
+        <h3 class="card-title">Промокод</h3>
+        <div class="promo-row">
+          <input type="text" id="promo-input" class="input-field" placeholder="Введите промокод" autocomplete="off">
+          <button type="button" class="btn btn-secondary" id="promo-btn">Применить</button>
+        </div>
+        <p class="promo-msg" id="promo-msg"></p>
+      </section>
+
+      <section class="card payment-section">
+        <h3 class="card-title">Способ оплаты</h3>
+        <div class="pay-tabs">
+          <button type="button" class="pay-tab pay-tab-active" data-tab="kaspi">Kaspi перевод</button>
+          <button type="button" class="pay-tab" data-tab="card">Банковская карта</button>
+        </div>
+
+        <div class="pay-panel" id="panel-kaspi">
+          <div class="kaspi-block">
+            <div class="kaspi-logo">Kaspi</div>
+            <div class="kaspi-details">
+              <p><strong>Номер:</strong> +7 (777) 123-45-67</p>
+              <p><strong>Получатель:</strong> HSK.ILS (ИП Пример)</p>
+              <p><strong>Сумма:</strong> <span id="pay-amount">1 990</span> ₸</p>
+              <p class="kaspi-hint">Укажите в комментарии к переводу: <code id="pay-ref">HSK-PRO</code></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pay-panel" id="panel-card" hidden>
+          <div class="card-form">
+            <label class="input-label" for="card-number">Номер карты</label>
+            <input type="text" id="card-number" class="input-field" placeholder="0000 0000 0000 0000" maxlength="19">
+            <div class="card-form-row">
+              <div>
+                <label class="input-label" for="card-exp">Срок</label>
+                <input type="text" id="card-exp" class="input-field" placeholder="MM/YY" maxlength="5">
+              </div>
+              <div>
+                <label class="input-label" for="card-cvc">CVC</label>
+                <input type="text" id="card-cvc" class="input-field" placeholder="***" maxlength="3">
+              </div>
+            </div>
+            <p class="card-hint">Демо-режим: данные не отправляются на сервер.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="payment-total card">
+        <div class="payment-total-row">
+          <span>Итого к оплате</span>
+          <strong id="total-amount">1 990 ₸</strong>
+        </div>
+        <button type="button" class="btn btn-primary btn-lg payment-submit" id="pay-btn">
+          Оформить подписку
+        </button>
+        <p class="payment-note" id="pay-status"></p>
+      </section>
+
+      <p class="payment-back"><a href="test.html">← Вернуться к тесту</a></p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-logo"><span class="logo-han">汉</span> HSK.ILS</p>
+      <p class="footer-copy">© 2026 HSK.ILS</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const plans = {
+        pro: { price: 1990, label: 'PRO', ref: 'HSK-PRO' },
+        premium: { price: 4900, label: 'Premium', ref: 'HSK-PREMIUM' }
+      };
+      let discount = 0;
+      let selectedPlan = 'pro';
+
+      const payAmount = document.getElementById('pay-amount');
+      const totalAmount = document.getElementById('total-amount');
+      const payRef = document.getElementById('pay-ref');
+      const promoMsg = document.getElementById('promo-msg');
+      const payStatus = document.getElementById('pay-status');
+      const payBtn = document.getElementById('pay-btn');
+
+      function formatPrice(n) {
+        return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      }
+
+      function updateTotal() {
+        const plan = plans[selectedPlan];
+        const total = Math.max(0, plan.price - discount);
+        payAmount.textContent = formatPrice(total);
+        totalAmount.textContent = formatPrice(total) + ' ₸';
+        payRef.textContent = plan.ref;
+      }
+
+      document.querySelectorAll('input[name="plan"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+          selectedPlan = this.value;
+          updateTotal();
+        });
+      });
+
+      document.getElementById('promo-btn').addEventListener('click', function () {
+        const code = document.getElementById('promo-input').value.trim().toUpperCase();
+        if (code === 'HSK2026' || code === 'ILS10') {
+          discount = Math.round(plans[selectedPlan].price * 0.1);
+          promoMsg.textContent = 'Промокод применён: скидка 10% (−' + formatPrice(discount) + ' ₸)';
+          promoMsg.className = 'promo-msg promo-ok';
+        } else if (!code) {
+          promoMsg.textContent = 'Введите промокод';
+          promoMsg.className = 'promo-msg promo-warn';
+        } else {
+          discount = 0;
+          promoMsg.textContent = 'Промокод не найден';
+          promoMsg.className = 'promo-msg promo-error';
+        }
+        updateTotal();
+      });
+
+      document.querySelectorAll('.pay-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          document.querySelectorAll('.pay-tab').forEach(function (t) {
+            t.classList.remove('pay-tab-active');
+          });
+          tab.classList.add('pay-tab-active');
+          document.getElementById('panel-kaspi').hidden = tab.dataset.tab !== 'kaspi';
+          document.getElementById('panel-card').hidden = tab.dataset.tab !== 'card';
+        });
+      });
+
+      payBtn.addEventListener('click', function () {
+        payBtn.disabled = true;
+        payBtn.textContent = 'Обработка оплаты…';
+        payStatus.textContent = '';
+
+        setTimeout(function () {
+          const until = new Date();
+          until.setMonth(until.getMonth() + 1);
+          localStorage.setItem('hskPremium', 'active');
+          localStorage.setItem('hskPremiumPlan', plans[selectedPlan].label);
+          localStorage.setItem('hskPremiumUntil', until.toISOString());
+          payBtn.textContent = 'Подписка активирована ✓';
+          payStatus.textContent =
+            'Спасибо! ' + plans[selectedPlan].label + ' активен до ' +
+            until.toLocaleDateString('ru-RU') + '. Безлимитные ИИ-проверки открыты.';
+          payStatus.className = 'payment-note payment-success';
+
+          setTimeout(function () {
+            window.location.href = 'test.html';
+          }, 1800);
+        }, 1500);
+      });
+
+      updateTotal();
+    })();
+  </script>
+</body>
+</html>

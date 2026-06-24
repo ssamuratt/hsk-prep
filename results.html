@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Результаты теста · HSK.ILS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-han">汉</span>
+        <span class="logo-text">HSK.ILS</span>
+      </a>
+      <nav class="nav">
+        <a href="dashboard.html">Кабинет</a>
+        <a href="test.html" class="btn btn-sm">Новый тест</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <div class="container page-narrow">
+      <header class="page-header">
+        <p class="eyebrow">Тест завершён</p>
+        <h1>Ваш результат</h1>
+        <p class="page-lead" id="result-meta">HSK 3 · 听力 · сегодня</p>
+      </header>
+
+      <section class="score-hero card">
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="score-ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="score-ring-fill" id="score-ring" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="score-ring-label">
+            <span class="score-value" id="score-value">85</span>
+            <span class="score-max">/ <span id="score-max">100</span></span>
+          </div>
+        </div>
+        <div class="score-summary">
+          <h2 id="score-title">Отличный результат!</h2>
+          <p id="score-desc">Вы уверенно справились с аудированием HSK 3. Есть несколько моментов для повторения.</p>
+          <ul class="score-breakdown" id="score-breakdown"></ul>
+        </div>
+      </section>
+
+      <section class="chart-section card">
+        <h3 class="card-title">Результаты по заданиям</h3>
+        <div class="bar-chart" id="bar-chart"></div>
+      </section>
+
+      <section class="page-actions">
+        <a href="review.html" class="btn btn-primary btn-lg">Перейти к работе над ошибками</a>
+        <a href="dashboard.html" class="btn btn-ghost">В личный кабинет</a>
+        <a href="test.html" class="btn btn-secondary">Пройти тест снова</a>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-logo"><span class="logo-han">汉</span> HSK.ILS</p>
+      <p class="footer-copy">© 2026 HSK.ILS</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const raw = sessionStorage.getItem('hskTestResults');
+      const data = raw ? JSON.parse(raw) : {
+        score: 85,
+        maxScore: 100,
+        level: 'HSK 3',
+        section: '听力',
+        completedAt: new Date().toISOString(),
+        details: [
+          { question: 1, points: 20, maxPoints: 20, prompt: '「你好，我想学习汉语。」' },
+          { question: 2, points: 18, maxPoints: 20, prompt: '女的觉得今天天气怎么样？' },
+          { question: 3, points: 17, maxPoints: 20, prompt: '他们约好几点见面？' },
+          { question: 4, points: 15, maxPoints: 20, prompt: '男的为什么迟到？' },
+          { question: 5, points: 15, maxPoints: 20, prompt: '女的建议去哪里吃饭？' }
+        ]
+      };
+
+      const score = data.score;
+      const maxScore = data.maxScore;
+      const pct = Math.round((score / maxScore) * 100);
+
+      document.getElementById('score-value').textContent = score;
+      document.getElementById('score-max').textContent = maxScore;
+
+      const date = new Date(data.completedAt);
+      document.getElementById('result-meta').textContent =
+        data.level + ' · ' + data.section + ' · ' +
+        date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      const title = document.getElementById('score-title');
+      const desc = document.getElementById('score-desc');
+      if (pct >= 90) {
+        title.textContent = 'Превосходно!';
+        desc.textContent = 'Вы почти готовы к экзамену. Закрепите мелкие детали в разделе ошибок.';
+      } else if (pct >= 75) {
+        title.textContent = 'Отличный результат!';
+        desc.textContent = 'Хороший уровень для HSK 3. ИИ подскажет, что повторить.';
+      } else if (pct >= 60) {
+        title.textContent = 'Неплохо, есть куда расти';
+        desc.textContent = 'Продолжайте практику — разбор ошибок поможет быстро улучшить балл.';
+      } else {
+        title.textContent = 'Нужна дополнительная практика';
+        desc.textContent = 'Не расстраивайтесь — работа над ошибками и повторение ключевых фраз дадут результат.';
+      }
+
+      const ring = document.getElementById('score-ring');
+      const circumference = 2 * Math.PI * 52;
+      ring.style.strokeDasharray = circumference;
+      ring.style.strokeDashoffset = circumference - (pct / 100) * circumference;
+
+      const breakdown = document.getElementById('score-breakdown');
+      data.details.forEach(function (d) {
+        const li = document.createElement('li');
+        li.innerHTML = '<span>Задание ' + d.question + '</span><strong>' + d.points + '/' + d.maxPoints + '</strong>';
+        breakdown.appendChild(li);
+      });
+
+      const chart = document.getElementById('bar-chart');
+      data.details.forEach(function (d) {
+        const barPct = Math.round((d.points / d.maxPoints) * 100);
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        row.innerHTML =
+          '<span class="bar-label">№' + d.question + '</span>' +
+          '<div class="bar-track"><div class="bar-fill" style="width:' + barPct + '%"></div></div>' +
+          '<span class="bar-value">' + d.points + '</span>';
+        chart.appendChild(row);
+      });
+
+      const history = JSON.parse(localStorage.getItem('hskTestHistory') || '[]');
+      history.unshift({
+        score: score,
+        maxScore: maxScore,
+        level: data.level,
+        section: data.section,
+        completedAt: data.completedAt
+      });
+      localStorage.setItem('hskTestHistory', JSON.stringify(history.slice(0, 20)));
+    })();
+  </script>
+</body>
+</html>

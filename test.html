@@ -46,11 +46,10 @@
             <div class="audio-track">
               <div class="audio-progress" id="audio-progress" style="width: 0%"></div>
             </div>
-            <span class="audio-time"><span id="audio-current">0:00</span> / <span id="audio-duration">--:--</span></span>
+            <span class="audio-time"><span id="audio-current">0:00</span> / <span id="audio-duration">0:05</span></span>
           </div>
         </div>
         <p class="audio-hint">Можно прослушать запись до 2 раз (как на экзамене). Осталось: <span id="plays-left">2</span></p>
-        <audio id="audio" preload="metadata" src="https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E5%AD%A6%E4%B9%A0%E6%B1%89%E8%AF%AD%E3%80%82"></audio>
       </section>
 
       <section class="question-block">
@@ -181,8 +180,6 @@
       const MAX_PLAYS = 2;
       const savedAnswers = {};
 
-      const TTS_URL = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q=';
-
       const timerDisplay = document.getElementById('timer-display');
       const timerEl = document.getElementById('timer');
       const progressFill = document.getElementById('progress-fill');
@@ -191,7 +188,6 @@
       const charCountEl = document.getElementById('char-count');
       const playBtn = document.getElementById('play-btn');
       const playIcon = document.getElementById('play-icon');
-      const audio = document.getElementById('audio');
       const audioProgress = document.getElementById('audio-progress');
       const audioCurrent = document.getElementById('audio-current');
       const audioDuration = document.getElementById('audio-duration');
@@ -212,27 +208,27 @@
         },
         {
           instruction: '请听录音，选择正确的词语：',
-          text: '女的觉得今天天气怎么样？',
+          text: '女的觉得 сегодня погода как?',
           sub: 'Как девушка считает погоду сегодня?',
           sample: '今天很热。',
           tts: '今天很热。'
         },
         {
-          instruction: '请听录音，用汉字回答问题：',
+          instruction: '请听录音，用汉字回答問題：',
           text: '他们约好几点见面？',
-          sub: 'На которое время они договорились встретиться?',
+          sub: 'На какое время они договорились встретиться?',
           sample: '下午三点。',
           tts: '他们下午三点见面。'
         },
         {
-          instruction: '请听录音，用汉字回答问题：',
+          instruction: '请听录音，用汉字回答問題：',
           text: '男的为什么迟到？',
           sub: 'Почему мужчина опоздал?',
           sample: '因为堵车。',
           tts: '因为堵车。'
         },
         {
-          instruction: '请听录音，用汉字回答问题：',
+          instruction: '请听录音，用汉字回答問題：',
           text: '女的建议去哪里吃饭？',
           sub: 'Куда девушка предлагает пойти поесть?',
           sample: '去学校附近的饭馆。',
@@ -264,21 +260,8 @@
         charCountEl.textContent = [...answerInput.value].length;
       });
 
-      function formatAudioTime(sec) {
-        if (!isFinite(sec) || sec < 0) return '--:--';
-        const m = Math.floor(sec / 60);
-        const s = Math.floor(sec % 60);
-        return m + ':' + String(s).padStart(2, '0');
-      }
-
       function updatePlaysLeft() {
         playsLeftEl.textContent = String(Math.max(0, MAX_PLAYS - playCount));
-      }
-
-      function updateAudioProgress() {
-        if (!audio.duration || !isFinite(audio.duration)) return;
-        audioProgress.style.width = (audio.currentTime / audio.duration * 100) + '%';
-        audioCurrent.textContent = formatAudioTime(audio.currentTime);
       }
 
       function setPlayIcon(playing) {
@@ -286,50 +269,60 @@
         playBtn.setAttribute('aria-label', playing ? 'Пауза' : 'Воспроизвести аудио');
       }
 
-      audio.addEventListener('loadedmetadata', function () {
-        audioDuration.textContent = formatAudioTime(audio.duration);
-        updateAudioProgress();
-      });
-
-      audio.addEventListener('error', function () {
-        audioDuration.textContent = '--:--';
-        alert('Не удалось загрузить аудио. Проверьте подключение к интернету.');
-      });
-
       playBtn.addEventListener('click', function () {
-        if (!audio.paused) {
-          audio.pause();
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          setPlayIcon(false);
           return;
         }
+
         if (playCount >= MAX_PLAYS) {
           alert('Вы уже прослушали запись ' + MAX_PLAYS + ' раза (лимит экзамена).');
           return;
         }
-        if (audio.ended) audio.currentTime = 0;
-        if (audio.currentTime === 0) {
-          playCount++;
-          updatePlaysLeft();
-        }
-        audio.play().catch(function () {
-          setPlayIcon(false);
-          alert('Не удалось воспроизвести аудио. Проверьте подключение к интернету.');
-        });
-      });
 
-      audio.addEventListener('play', function () {
+        const q = questions[currentQuestion - 1];
+        if (!q.tts) return;
+
+        playCount++;
+        updatePlaysLeft();
         setPlayIcon(true);
-      });
 
-      audio.addEventListener('pause', function () {
-        setPlayIcon(false);
-      });
+        const utterance = new SpeechSynthesisUtterance(q.tts);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 0.8; // Комфортная скорость для HSK 3
 
-      audio.addEventListener('timeupdate', updateAudioProgress);
+        // Анимация полоски прогресса пока идет речь
+        let startTime = Date.now();
+        let durationEst = q.tts.length * 400; // Примерное время звучания
+        audioDuration.textContent = '0:0' + Math.round(durationEst / 1000);
 
-      audio.addEventListener('ended', function () {
-        setPlayIcon(false);
-        audioProgress.style.width = '100%';
-        audioCurrent.textContent = formatAudioTime(audio.duration);
+        let progressInterval = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(progressInterval);
+            audioProgress.style.width = '0%';
+            audioCurrent.textContent = '0:00';
+            return;
+          }
+          let elapsed = Date.now() - startTime;
+          let pct = Math.min(100, (elapsed / durationEst) * 100);
+          audioProgress.style.width = pct + '%';
+          audioCurrent.textContent = '0:0' + Math.min(Math.round(durationEst/1000), Math.floor(elapsed / 1000));
+        }, 100);
+
+        utterance.onend = function () {
+          clearInterval(progressInterval);
+          setPlayIcon(false);
+          audioProgress.style.width = '100%';
+          setTimeout(() => audioProgress.style.width = '0%', 300);
+        };
+
+        utterance.onerror = function () {
+          clearInterval(progressInterval);
+          setPlayIcon(false);
+        };
+
+        window.speechSynthesis.speak(utterance);
       });
 
       checkBtn.addEventListener('click', async function () {
@@ -430,15 +423,6 @@
         window.location.href = 'results.html';
       }
 
-      function loadQuestionAudio(q) {
-        if (q.tts) {
-          audio.src = TTS_URL + encodeURIComponent(q.tts);
-          audio.load();
-          audioDuration.textContent = '--:--';
-          audioProgress.style.width = '0%';
-          audioCurrent.textContent = '0:00';
-        }
-      }
       function updateQuestion() {
         const q = questions[currentQuestion - 1];
         document.getElementById('question-text').textContent = q.text;
@@ -455,17 +439,16 @@
         prevBtn.disabled = currentQuestion === 1;
         nextBtn.textContent = currentQuestion === TOTAL_QUESTIONS ? 'Завершить тест' : 'Далее →';
         playCount = 0;
-        audio.pause();
-        audio.currentTime = 0;
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
         audioProgress.style.width = '0%';
         audioCurrent.textContent = '0:00';
         setPlayIcon(false);
         updatePlaysLeft();
-        loadQuestionAudio(q);
       }
 
       updatePlaysLeft();
-      loadQuestionAudio(questions[0]);
 
       nextBtn.addEventListener('click', function () {
         saveCurrentAnswer();

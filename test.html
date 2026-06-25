@@ -28,13 +28,11 @@
   <main class="test-main">
     <div class="container test-container">
       
-      <!-- Инструкция к секции -->
       <section class="test-section">
         <h2 id="section-title" class="section-title">Загрузка...</h2>
         <p id="section-desc" class="section-desc"></p>
       </section>
 
-      <!-- Блок с Аудио (показывается только если в вопросе есть аудио) -->
       <section class="audio-block" id="audio-block" hidden>
         <div class="audio-player">
           <button type="button" class="audio-play-btn" id="play-btn">
@@ -47,31 +45,25 @@
         </div>
       </section>
 
-      <!-- Основной блок вопроса -->
       <section class="question-block">
         <div class="question-header">
           <span class="question-num" id="q-num-badge">1</span>
           <p class="question-instruction" id="q-instruction">Инструкция</p>
         </div>
         
-        <!-- Текст вопроса (иероглифы или задание) -->
         <div class="question-main-text" id="q-text" style="font-size: 1.5rem; margin: 1rem 0; font-weight: bold;"></div>
 
-        <!-- ДИНАМИЧЕСКИЙ БЛОК ОТВЕТОВ -->
-        <div id="answers-container">
-          <!-- Сюда JS будет вставлять либо текстовое поле, либо варианты выбора (A, B, C) -->
-        </div>
+        <div id="answers-container"></div>
 
-        <!-- Подсказка ИИ -->
         <div class="ai-hint" id="ai-hint" hidden>
-          <span class="ai-badge">AI</span>
+          <span class="ai-badge" id="feedback-badge">ИИ</span>
           <p id="ai-hint-text">Анализ...</p>
         </div>
       </section>
 
       <nav class="test-nav">
         <button type="button" class="btn btn-ghost" id="prev-btn">← Назад</button>
-        <button type="button" class="btn btn-secondary" id="check-btn" hidden>Проверить с ИИ</button>
+        <button type="button" class="btn btn-secondary" id="check-btn" hidden>Проверить ответ</button>
         <button type="button" class="btn btn-primary" id="next-btn">Далее →</button>
       </nav>
     </div>
@@ -79,13 +71,13 @@
 
   <script>
     (function () {
-      // БАЗА ДАННЫХ ТЕСТОВ (Сюда ты можешь прописывать бесконечно много пробников!)
+      // Полностью бесплатная база тестов
       const examBank = {
         'hsk3-demo': {
           title: 'HSK 3 — Демо Тест',
           questions: [
             {
-              type: 'write', // Тип: Написание иероглифов с ИИ
+              type: 'write',
               section: '听力理解 · Аудирование',
               instruction: 'Послушайте аудио и запишите фразу иероглифами:',
               text: '«Привет, я хочу учить китайский язык»',
@@ -93,12 +85,12 @@
               sample: '你好，我想学习汉语。'
             },
             {
-              type: 'choice', // Тип: Тест (Выбор ответа)
+              type: 'choice',
               section: '阅读理解 · Чтение',
-              instruction: 'Выберите правильный иероглиф для пиньиня "mēng":',
-              text: '明天 я пойду в школу. Как пишется "Míngtiān"?',
+              instruction: 'Выберите правильный иероглиф для пиньиня "míngtiān":',
+              text: '明天 я пойду в школу. Какой вариант верный?',
               options: ['A) 昨天', 'B) 明天', 'C) 天气'],
-              correctAnswer: 1 // Индекс правильного ответа (B)
+              correctAnswer: 1 
             },
             {
               type: 'write',
@@ -109,33 +101,17 @@
               tts: '今天很热。'
             }
           ]
-        },
-        'hsk1-mock': {
-          title: 'HSK 1 — Пробный Вариант',
-          questions: [
-            {
-              type: 'choice',
-              section: '听力 · Аудирование',
-              instruction: 'Слушайте слово и выберите перевод:',
-              text: 'Что означает это слово?',
-              tts: '谢谢',
-              options: ['A) Привет', 'B) Спасибо', 'C) До свидания'],
-              correctAnswer: 1
-            }
-          ]
         }
       };
 
-      // Определяем, какой тест запустить (берём из ссылки типа test.html?exam=hsk3-demo)
       const urlParams = new URLSearchParams(window.location.search);
-      const examKey = urlParams.get('exam') || 'hsk3-demo'; // если ничего не указано, запустим hsk3-demo
+      const examKey = urlParams.get('exam') || 'hsk3-demo'; 
       const currentExam = examBank[examKey] || examBank['hsk3-demo'];
 
       let currentQuestionIdx = 0;
       let playCount = 0;
       const savedAnswers = {};
 
-      // Элементы страницы
       const examTitleEl = document.getElementById('exam-title');
       const sectionTitleEl = document.getElementById('section-title');
       const qInstructionEl = document.getElementById('q-instruction');
@@ -149,6 +125,9 @@
       const nextBtn = document.getElementById('next-btn');
       const prevBtn = document.getElementById('prev-btn');
       const checkBtn = document.getElementById('check-btn');
+      const aiHint = document.getElementById('ai-hint');
+      const aiHintText = document.getElementById('ai-hint-text');
+      const feedbackBadge = document.getElementById('feedback-badge');
 
       examTitleEl.textContent = currentExam.title;
       totalQEl.textContent = currentExam.questions.length;
@@ -162,7 +141,6 @@
         qInstructionEl.textContent = q.instruction;
         qTextEl.textContent = q.text;
 
-        // Настройка аудио
         if (q.tts) {
           audioBlock.hidden = false;
           playCount = 0;
@@ -171,13 +149,12 @@
           audioBlock.hidden = true;
         }
 
-        // Очищаем старые ответы и рендерим новые в зависимости от ТИПА задания
         answersContainer.innerHTML = '';
-        document.getElementById('ai-hint').hidden = true;
-        checkBtn.hidden = true;
+        aiHint.hidden = true;
+        checkBtn.hidden = false; 
 
         if (q.type === 'write') {
-          checkBtn.hidden = false; // Показываем кнопку ИИ только для открытых вопросов
+          checkBtn.textContent = 'Проверить ответ';
           answersContainer.innerHTML = `
             <textarea id="answer-input" class="answer-input" rows="3" placeholder="Введите иероглифы здесь..."></textarea>
           `;
@@ -186,6 +163,7 @@
           input.addEventListener('input', () => savedAnswers[currentQuestionIdx] = input.value);
         } 
         else if (q.type === 'choice') {
+          checkBtn.hidden = true; // Для тестов кнопка проверки не нужна, проверяем по клику
           q.options.forEach((option, idx) => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-ghost';
@@ -198,11 +176,24 @@
             if (savedAnswers[currentQuestionIdx] === idx) {
               btn.style.background = '#e3f2fd';
               btn.style.borderColor = '#2196f3';
+              
+              // Показываем, правильно или нет
+              aiHint.hidden = false;
+              feedbackBadge.textContent = "Система";
+              if (idx === q.correctAnswer) {
+                aiHintText.textContent = "正确! (Верно!) 👍";
+                btn.style.background = '#e8f5e9';
+                btn.style.borderColor = '#4caf50';
+              } else {
+                aiHintText.textContent = "Неверно. Попробуйте еще раз или разберите структуру слова.";
+                btn.style.background = '#ffebee';
+                btn.style.borderColor = '#f44336';
+              }
             }
 
             btn.onclick = () => {
               savedAnswers[currentQuestionIdx] = idx;
-              renderQuestion(); // Перерисовать, чтобы подсветить кликнутый вариант
+              renderQuestion(); 
             };
             answersContainer.appendChild(btn);
           });
@@ -212,7 +203,6 @@
         nextBtn.textContent = currentQuestionIdx === currentExam.questions.length - 1 ? 'Завершить тест' : 'Далее →';
       }
 
-      // Логика аудио-произношения
       playBtn.addEventListener('click', () => {
         const q = currentExam.questions[currentQuestionIdx];
         if (!q.tts || playCount >= 2) return;
@@ -226,13 +216,38 @@
         window.speechSynthesis.speak(utterance);
       });
 
+      // Полностью бесплатная автоматическая проверка без внешних платных ключей
+      checkBtn.addEventListener('click', () => {
+        const q = currentExam.questions[currentQuestionIdx];
+        if (q.type === 'write') {
+          const input = document.getElementById('answer-input');
+          const userText = input ? input.value.trim() : '';
+          
+          aiHint.hidden = false;
+          feedbackBadge.textContent = "Авто-проверка";
+
+          if (!userText) {
+            aiHintText.textContent = "Пожалуйста, введите ответ перед проверкой.";
+            return;
+          }
+
+          // Сравниваем текст (игнорируя пробелы и знаки препинания)
+          const clean = text => text.replace(/[，。！？、\s«»]/g, '').toLowerCase();
+          
+          if (clean(userText) === clean(q.sample)) {
+            aiHintText.innerHTML = `<strong>Анализ ответа:</strong><br> Perfect! Вы написали абсолютно верно: <span style="color:#4caf50">${q.sample}</span>.<br>Оценка: 10/10.`;
+          } else {
+            aiHintText.innerHTML = `<strong>Анализ ответа:</strong><br>Обнаружено несовпадение в иероглифах.<br><strong>Ваш ответ:</strong> ${userText}<br><strong>Ожидалось:</strong> ${q.sample}<br>Сверьте написание черт и порядок слов!`;
+          }
+        }
+      });
+
       nextBtn.addEventListener('click', () => {
         if (currentQuestionIdx < currentExam.questions.length - 1) {
           currentQuestionIdx++;
           renderQuestion();
         } else {
-          // Расчет результатов и переход на страницу итогов
-          alert('Тест завершен! Переходим к результатам.');
+          alert('Тест завершен!');
           window.location.href = 'dashboard.html'; 
         }
       });

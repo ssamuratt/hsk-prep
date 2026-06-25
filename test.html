@@ -5,6 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Симулятор экзамена · HSK.ILS</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Стильные вкладки для переключения частей (Parts) */
+    .parts-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+    }
+    .part-tab {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: default;
+      transition: all 0.2s;
+    }
+    .part-tab.active {
+      background: var(--primary);
+      color: #0f172a;
+      border-color: var(--primary);
+    }
+    .part-tab.completed {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+  </style>
 </head>
 <body class="test-page">
   <header class="test-header">
@@ -15,7 +46,7 @@
       </a>
       <div class="test-meta">
         <span class="test-level" id="exam-title">HSK Test</span>
-        <span class="test-progress">Задание <span id="current-q">1</span> / <span id="total-q">3</span></span>
+        <span class="test-progress">Вопрос <span id="current-q">1</span> из <span id="total-q">3</span></span>
       </div>
       <div class="timer" id="timer">
         <span class="timer-icon">⏱</span>
@@ -28,11 +59,18 @@
   <main class="test-main">
     <div class="container test-container">
       
+      <!-- Панель переключения Частей (Parts) -->
+      <div class="parts-tabs" id="parts-tabs-container">
+        <!-- Вкладки генерируются автоматически через JS -->
+      </div>
+
+      <!-- Инструкция к секции -->
       <section class="test-section">
         <h2 id="section-title" class="section-title">Загрузка...</h2>
         <p id="section-desc" class="section-desc"></p>
       </section>
 
+      <!-- Блок с Аудио -->
       <section class="audio-block" id="audio-block" hidden>
         <div class="audio-player">
           <button type="button" class="audio-play-btn" id="play-btn">
@@ -45,6 +83,7 @@
         </div>
       </section>
 
+      <!-- Основной блок вопроса -->
       <section class="question-block">
         <div class="question-header">
           <span class="question-num" id="q-num-badge">1</span>
@@ -53,8 +92,10 @@
         
         <div class="question-main-text" id="q-text" style="font-size: 1.5rem; margin: 1rem 0; font-weight: bold;"></div>
 
+        <!-- ДИНАМИЧЕСКИЙ БЛОК ОТВЕТОВ -->
         <div id="answers-container"></div>
 
+        <!-- Разбор ответа Автопроверка -->
         <div class="ai-hint" id="ai-hint" hidden>
           <span class="ai-badge" id="feedback-badge">Система</span>
           <p id="ai-hint-text">Анализ...</p>
@@ -71,34 +112,60 @@
 
   <script>
     (function () {
-      // База данных тестов
+      // ИЕРАРХИЧЕСКАЯ БАЗА ДАННЫХ (Структура по Частям: Part 1, Part 2 и т.д.)
       const examBank = {
         'hsk3-demo': {
-          title: 'HSK 3 — Демо Тест',
-          questions: [
+          title: 'HSK 3 — Полный симулятор',
+          // Массив частей экзамена
+          parts: [
             {
-              type: 'write',
-              section: '听力理解 · Аудирование',
-              instruction: 'Послушайте аудио и запишите фразу иероглифами:',
-              text: '«Привет, я хочу учить китайский язык»',
-              tts: '你好，我想学习汉语。',
-              sample: '你好，我想学习汉语。'
+              id: 'part1',
+              name: 'Part 1: Аудирование',
+              description: 'Слушайте внимательно аудиозапись и записывайте услышанное.',
+              questions: [
+                {
+                  type: 'write',
+                  instruction: 'Запишите фразу иероглифами:',
+                  text: '«Привет, я хочу учить китайский язык»',
+                  tts: '你好，我想学习汉语。',
+                  sample: '你好，我想学习汉语。'
+                },
+                {
+                  type: 'write',
+                  instruction: 'Запишите услышанное предложение:',
+                  text: '«Где твой друг?»',
+                  tts: '你的朋友在哪儿？',
+                  sample: '你的朋友在哪儿？'
+                }
+              ]
             },
             {
-              type: 'choice',
-              section: '阅读理解 · Чтение',
-              instruction: 'Выберите правильный иероглиф для пиньиня "míngtiān":',
-              text: '明天 я пойду в школу. Какой вариант верный?',
-              options: ['A) 昨天', 'B) 明天', 'C) 天气'],
-              correctAnswer: 1 
+              id: 'part2',
+              name: 'Part 2: Чтение (Выбор слова)',
+              description: 'Выберите один наиболее подходящий вариант из предложенных.',
+              questions: [
+                {
+                  type: 'choice',
+                  instruction: 'Выберите правильный иероглиф для пиньиня "míngtiān":',
+                  text: '____ 我去学校。 (Завтра я пойду в школу)',
+                  options: ['A) 昨天', 'B) 明天', 'C) 天气'],
+                  correctAnswer: 1 
+                }
+              ]
             },
             {
-              type: 'write',
-              section: '书写 · Письмо',
-              instruction: 'Переведите на китайский язык и запишите иероглифами:',
-              text: '«Сегодня очень жарко»',
-              sample: '今天很热。',
-              tts: '今天很热。'
+              id: 'part3',
+              name: 'Part 3: Письмо и Грамматика',
+              description: 'Переведите предложения, соблюдая правила построения фраз в китайском языке.',
+              questions: [
+                {
+                  type: 'write',
+                  instruction: 'Переведите на китайский язык:',
+                  text: '«Сегодня очень жарко»',
+                  sample: '今天很热。',
+                  tts: '今天很热。'
+                }
+              ]
             }
           ]
         }
@@ -108,12 +175,28 @@
       const examKey = urlParams.get('exam') || 'hsk3-demo'; 
       const currentExam = examBank[examKey] || examBank['hsk3-demo'];
 
-      let currentQuestionIdx = 0;
+      // Плоский массив для удобной линейной навигации
+      let flatQuestions = [];
+      currentExam.parts.forEach((part, partIdx) => {
+        part.questions.forEach((q, qIdx) => {
+          flatQuestions.push({
+            ...q,
+            partId: part.id,
+            partName: part.name,
+            partDesc: part.description,
+            globalIdx: flatQuestions.length
+          });
+        });
+      });
+
+      let currentGlobalIdx = 0;
       let playCount = 0;
       const savedAnswers = {};
 
+      // DOM элементы
       const examTitleEl = document.getElementById('exam-title');
       const sectionTitleEl = document.getElementById('section-title');
+      const sectionDescEl = document.getElementById('section-desc');
       const qInstructionEl = document.getElementById('q-instruction');
       const qTextEl = document.getElementById('q-text');
       const currentQEl = document.getElementById('current-q');
@@ -128,19 +211,41 @@
       const aiHint = document.getElementById('ai-hint');
       const aiHintText = document.getElementById('ai-hint-text');
       const feedbackBadge = document.getElementById('feedback-badge');
+      const tabsContainer = document.getElementById('parts-tabs-container');
 
       examTitleEl.textContent = currentExam.title;
-      totalQEl.textContent = currentExam.questions.length;
+      totalQEl.textContent = flatQuestions.length;
+
+      // Функция рендеринга плашек сверху (Частей)
+      function renderTabs(activePartId) {
+        tabsContainer.innerHTML = '';
+        currentExam.parts.forEach(part => {
+          const tab = document.createElement('div');
+          tab.className = `part-tab ${part.id === activePartId ? 'active' : ''}`;
+          tab.textContent = part.name.split(':')[0]; // Оставит только "Part 1", "Part 2"
+          tabsContainer.appendChild(tab);
+        });
+      }
 
       function renderQuestion() {
-        const q = currentExam.questions[currentQuestionIdx];
-        currentQEl.textContent = currentQuestionIdx + 1;
-        document.getElementById('q-num-badge').textContent = currentQuestionIdx + 1;
+        const q = flatQuestions[currentGlobalIdx];
         
-        sectionTitleEl.textContent = q.section;
+        // Обновляем счетчики и вкладки частей
+        currentQEl.textContent = currentGlobalIdx + 1;
+        document.getElementById('q-num-badge').textContent = currentGlobalIdx + 1;
+        renderTabs(q.partId);
+
+        // Тексты инструкций и частей
+        sectionTitleEl.textContent = q.partName;
+        sectionDescEl.textContent = q.partDesc;
         qInstructionEl.textContent = q.instruction;
         qTextEl.textContent = q.text;
 
+        // Настройка прогресс-бара
+        const progressPct = ((currentGlobalIdx + 1) / flatQuestions.length) * 100;
+        document.getElementById('progress-fill').style.width = `${progressPct}%`;
+
+        // Логика аудио
         if (q.tts) {
           audioBlock.hidden = false;
           playCount = 0;
@@ -159,8 +264,8 @@
             <textarea id="answer-input" class="answer-input" rows="3" placeholder="Введите иероглифы здесь..."></textarea>
           `;
           const input = document.getElementById('answer-input');
-          input.value = savedAnswers[currentQuestionIdx] || '';
-          input.addEventListener('input', () => savedAnswers[currentQuestionIdx] = input.value);
+          input.value = savedAnswers[currentGlobalIdx] || '';
+          input.addEventListener('input', () => savedAnswers[currentGlobalIdx] = input.value);
         } 
         else if (q.type === 'choice') {
           checkBtn.hidden = true; 
@@ -173,37 +278,34 @@
             btn.style.margin = '0.5rem 0';
             btn.textContent = option;
 
-            if (savedAnswers[currentQuestionIdx] === idx) {
-              btn.style.background = '#e3f2fd';
-              btn.style.borderColor = '#2196f3';
-              
+            if (savedAnswers[currentGlobalIdx] === idx) {
               aiHint.hidden = false;
               feedbackBadge.textContent = "Система";
               if (idx === q.correctAnswer) {
                 aiHintText.textContent = "正确! (Верно!) 👍";
-                btn.style.background = '#e8f5e9';
-                btn.style.borderColor = '#4caf50';
+                btn.style.background = 'rgba(52, 211, 153, 0.2)';
+                btn.style.borderColor = 'var(--accent-green)';
               } else {
-                aiHintText.textContent = "Неверно. Попробуйте еще раз или разберите структуру слова.";
-                btn.style.background = '#ffebee';
-                btn.style.borderColor = '#f44336';
+                aiHintText.textContent = "Неверно. Попробуйте выбрать другой вариант.";
+                btn.style.background = 'rgba(248, 113, 113, 0.2)';
+                btn.style.borderColor = 'var(--accent-red)';
               }
             }
 
             btn.onclick = () => {
-              savedAnswers[currentQuestionIdx] = idx;
+              savedAnswers[currentGlobalIdx] = idx;
               renderQuestion(); 
             };
             answersContainer.appendChild(btn);
           });
         }
 
-        prevBtn.disabled = currentQuestionIdx === 0;
-        nextBtn.textContent = currentQuestionIdx === currentExam.questions.length - 1 ? 'Завершить тест' : 'Далее →';
+        prevBtn.disabled = currentGlobalIdx === 0;
+        nextBtn.textContent = currentGlobalIdx === flatQuestions.length - 1 ? 'Завершить тест' : 'Далее →';
       }
 
       playBtn.addEventListener('click', () => {
-        const q = currentExam.questions[currentQuestionIdx];
+        const q = flatQuestions[currentGlobalIdx];
         if (!q.tts || playCount >= 2) return;
         
         playCount++;
@@ -216,7 +318,7 @@
       });
 
       checkBtn.addEventListener('click', () => {
-        const q = currentExam.questions[currentQuestionIdx];
+        const q = flatQuestions[currentGlobalIdx];
         if (q.type === 'write') {
           const input = document.getElementById('answer-input');
           const userText = input ? input.value.trim() : '';
@@ -232,7 +334,32 @@
           const clean = text => text.replace(/[，。！？、\s«»]/g, '').toLowerCase();
           
           if (clean(userText) === clean(q.sample)) {
-            aiHintText.innerHTML = `<strong>Анализ ответа:</strong><br> Perfect! Вы написали абсолютно верно: <span style="color:#4caf50">${q.sample}</span>.<br>Оценка: 10/10.`;
+            aiHintText.innerHTML = `<strong>Анализ ответа:</strong><br> Отлично! Вы написали абсолютно верно: <span style="color:var(--accent-green)">${q.sample}</span>.<br>Оценка: 10/10.`;
           } else {
-            aiHintText.innerHTML = `<strong>Анализ ответа:</strong><br>Обнаружено несовпадение в иероглифах.<br><strong>Ваш ответ:</strong> ${userText}<br><strong>Ожидалось:</strong> ${q.sample}<br>Сверьте написание черт и порядок слов!`;
+            aiHintText.innerHTML = `<strong>Анализ ответа:</strong><br>Есть несовпадения.<br><strong>Ваш ответ:</strong> ${userText}<br><strong>Ожидалось:</strong> ${q.sample}`;
           }
+        }
+      });
+
+      nextBtn.addEventListener('click', () => {
+        if (currentGlobalIdx < flatQuestions.length - 1) {
+          currentGlobalIdx++;
+          renderQuestion();
+        } else {
+          alert('Отличная работа! Экзамен полностью завершен.');
+          window.location.href = 'dashboard.html'; 
+        }
+      });
+
+      prevBtn.addEventListener('click', () => {
+        if (currentGlobalIdx > 0) {
+          currentGlobalIdx--;
+          renderQuestion();
+        }
+      });
+
+      renderQuestion();
+    })();
+  </script>
+</body>
+</html>

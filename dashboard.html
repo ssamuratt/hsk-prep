@@ -3,145 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Личный кабинет · HSK.ILS</title>
+  <title>Панель управления · HSK.ILS</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .level-block { margin-bottom: 40px; }
+    .level-title { 
+      font-size: 1.5rem; 
+      color: var(--primary); 
+      margin-bottom: 15px; 
+      border-left: 4px solid var(--primary); 
+      padding-left: 10px;
+    }
+    .variants-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
+    }
+    .variant-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 15px;
+      border-radius: var(--radius);
+      text-align: center;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .variant-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .variant-card h4 { margin-bottom: 10px; color: var(--text-main); }
+  </style>
 </head>
 <body class="dashboard-page">
   <header class="site-header">
     <div class="container header-inner">
-      <a href="index.html" class="logo">
+      <a href="dashboard.html" class="logo">
         <span class="logo-han">汉</span>
         <span class="logo-text">HSK.ILS</span>
       </a>
       <nav class="nav">
-        <a href="dashboard.html" class="active">Мой прогресс</a>
-        <a href="payment.html">Тарифы PRO</a>
-        <button type="button" class="btn btn-sm btn-ghost" id="logout-btn">Выйти</button>
+        <a href="dashboard.html" class="active">Все тесты</a>
       </nav>
     </div>
   </header>
 
-  <main class="dashboard-main container">
-    <!-- Приветствие и статистика -->
-    <section class="welcome-section">
-      <div class="welcome-card">
-        <h1>Привет, Студент! 👋</h1>
-        <p>Добро пожаловать в твою умную панель подготовки к HSK. Проходи тесты, а ИИ разберет каждую ошибку.</p>
-      </div>
-      
-      <div class="stats-grid">
-        <div class="stat-box">
-          <span class="stat-num" id="tests-completed">0</span>
-          <span class="stat-desc">Пройдено тестов</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-num" id="avg-score">0%</span>
-          <span class="stat-desc">Средний результат</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-num" id="current-badge">—</span>
-          <span class="stat-desc">Текущий уровень</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Доступные симуляторы тестов (как на ielts.gg) -->
-    <section class="tests-section">
-      <h2>Доступные экзамены Mock Tests</h2>
-      <div class="mock-tests-grid">
-        
-        <!-- Карточка HSK 3 -->
-        <article class="mock-card">
-          <div class="card-badge">Реальный формат</div>
-          <h3>HSK 3 — Демо Тест</h3>
-          <p class="card-meta">5 заданий · Аудирование (听力) · 25 минут</p>
-          <div class="card-footer">
-            <span class="price-free">Бесплатно</span>
-            <a href="test.html" class="btn btn-primary btn-sm">Начать тест</a>
-          </div>
-        </article>
-
-        <!-- Карточка HSK 4 (Заблокирована под PRO) -->
-        <article class="mock-card locked">
-          <div class="card-badge pro-badge">PRO</div>
-          <h3>HSK 4 — Полный симулятор</h3>
-          <p class="card-meta">Грамматика, 把/被, развернутые ответы</p>
-          <div class="card-footer">
-            <span class="price-pro">PRO доступ</span>
-            <a href="payment.html" class="btn btn-secondary btn-sm">Открыть HSK 4</a>
-          </div>
-        </article>
-
-      </div>
-    </section>
-
-    <!-- История выполненных тестов -->
-    <section class="history-section">
-      <h2>История ваших результатов</h2>
-      <div class="table-wrap">
-        <table class="history-table">
-          <thead>
-            <tr>
-              <th>Дата</th>
-              <th>Экзамен</th>
-              <th>Секция</th>
-              <th>Набранный балл</th>
-              <th>Статус</th>
-              <th>Действие</th>
-            </tr>
-          </thead>
-          <tbody id="history-tbody">
-            <!-- Сюда JS добавит результаты автоматически -->
-            <tr id="empty-row">
-              <td colspan="6" style="text-align: center; color: #888; padding: 2rem;">
-                Вы еще не проходили тесты. Самое время начать!
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <div class="container footer-inner">
-      <p class="footer-copy">© 2026 HSK.ILS. Твой персональный ИИ-тренажер.</p>
+  <main class="container" style="margin-top: 30px;">
+    <div class="welcome-card">
+      <h1>Интерактивная база Mock-тестов HSK 🚀</h1>
+      <p>Выбирай нужный уровень и тренируйся бесплатно. Все тесты разбиты по частям с автопроверкой и оригинальной озвучкой Apple/Google.</p>
     </div>
-  </footer>
+
+    <div id="hsk-levels-container">
+      </div>
+  </main>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Пытаемся забрать результат теста из хранилища браузера
-      const lastResult = JSON.parse(sessionStorage.getItem('hskTestResults') || localStorage.getItem('hskTestResults') || 'null');
+      const container = document.getElementById('hsk-levels-container');
       
-      if (lastResult) {
-        // Скрываем пустую строчку таблицы
-        const emptyRow = document.getElementById('empty-row');
-        if (emptyRow) emptyRow.style.display = 'none';
-
-        // Обновляем верхние плашки со статистикой
-        document.getElementById('tests-completed').textContent = '1';
+      // Генерируем структуру от HSK 1 до HSK 5
+      for (let lvl = 1; lvl <= 5; lvl++) {
+        const levelBlock = document.createElement('div');
+        levelBlock.className = 'level-block';
         
-        const pct = Math.round((lastResult.score / lastResult.maxScore) * 100);
-        document.getElementById('avg-score').textContent = pct + '%';
-        document.getElementById('current-badge').textContent = lastResult.level || 'HSK 3';
-
-        // Форматируем дату
-        const dateObj = new Date(lastResult.completedAt || Date.now());
-        const formattedDate = dateObj.toLocaleDateString('ru-RU') + ' ' + dateObj.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-
-        // Создаем интерактивную строчку в таблице
-        const tbody = document.getElementById('history-tbody');
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td><strong>${formattedDate}</strong></td>
-          <td><span class="badge-level">${lastResult.level}</span></td>
-          <td>${lastResult.section}</td>
-          <td><span class="score-highlight">${lastResult.score} / ${lastResult.maxScore}</span></td>
-          <td><span class="status-done">Завершено</span></td>
-          <td><a href="results.html" class="btn btn-sm btn-ghost" style="padding: 0.2rem 0.5rem; font-size: 0.85rem;">Посмотреть разбор</a></td>
-        `;
-        tbody.appendChild(row);
+        levelBlock.innerHTML = `<h3 class="level-title">Уровень HSK ${lvl}</h3>`;
+        
+        const grid = document.createElement('div');
+        grid.className = 'variants-grid';
+        
+        // По 5 вариантов в каждом
+        for (let v = 1; v <= 5; v++) {
+          const card = document.createElement('div');
+          card.className = 'variant-card';
+          card.innerHTML = `
+            <h4>Вариант ${v}</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">5 Parts · Микс заданий</p>
+            <a href="test.html?exam=hsk${lvl}-v${v}" class="btn btn-primary btn-sm" style="width: 100%;">Запустить</a>
+          `;
+          grid.appendChild(card);
+        }
+        
+        levelBlock.appendChild(grid);
+        container.appendChild(levelBlock);
       }
     });
   </script>

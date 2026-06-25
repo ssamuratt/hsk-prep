@@ -56,7 +56,7 @@
         <div id="answers-container"></div>
 
         <div class="ai-hint" id="ai-hint" hidden>
-          <span class="ai-badge" id="feedback-badge">ИИ</span>
+          <span class="ai-badge" id="feedback-badge">Система</span>
           <p id="ai-hint-text">Анализ...</p>
         </div>
       </section>
@@ -71,7 +71,7 @@
 
   <script>
     (function () {
-      // Полностью бесплатная база тестов
+      // База данных тестов
       const examBank = {
         'hsk3-demo': {
           title: 'HSK 3 — Демо Тест',
@@ -163,7 +163,7 @@
           input.addEventListener('input', () => savedAnswers[currentQuestionIdx] = input.value);
         } 
         else if (q.type === 'choice') {
-          checkBtn.hidden = true; // Для тестов кнопка проверки не нужна, проверяем по клику
+          checkBtn.hidden = true; 
           q.options.forEach((option, idx) => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-ghost';
@@ -177,7 +177,6 @@
               btn.style.background = '#e3f2fd';
               btn.style.borderColor = '#2196f3';
               
-              // Показываем, правильно или нет
               aiHint.hidden = false;
               feedbackBadge.textContent = "Система";
               if (idx === q.correctAnswer) {
@@ -216,7 +215,6 @@
         window.speechSynthesis.speak(utterance);
       });
 
-      // Полностью бесплатная автоматическая проверка без внешних платных ключей
       checkBtn.addEventListener('click', () => {
         const q = currentExam.questions[currentQuestionIdx];
         if (q.type === 'write') {
@@ -231,7 +229,6 @@
             return;
           }
 
-          // Сравниваем текст (игнорируя пробелы и знаки препинания)
           const clean = text => text.replace(/[，。！？、\s«»]/g, '').toLowerCase();
           
           if (clean(userText) === clean(q.sample)) {
@@ -239,28 +236,3 @@
           } else {
             aiHintText.innerHTML = `<strong>Анализ ответа:</strong><br>Обнаружено несовпадение в иероглифах.<br><strong>Ваш ответ:</strong> ${userText}<br><strong>Ожидалось:</strong> ${q.sample}<br>Сверьте написание черт и порядок слов!`;
           }
-        }
-      });
-
-      nextBtn.addEventListener('click', () => {
-        if (currentQuestionIdx < currentExam.questions.length - 1) {
-          currentQuestionIdx++;
-          renderQuestion();
-        } else {
-          alert('Тест завершен!');
-          window.location.href = 'dashboard.html'; 
-        }
-      });
-
-      prevBtn.addEventListener('click', () => {
-        if (currentQuestionIdx > 0) {
-          currentQuestionIdx--;
-          renderQuestion();
-        }
-      });
-
-      renderQuestion();
-    })();
-  </script>
-</body>
-</html>
